@@ -1,14 +1,19 @@
 import {
+  data,
   isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import { useEffect } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import stylesheet from "./app.css?url";
+import { commitSession, getSession } from "./session.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,7 +29,34 @@ export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
+export async function loader({ request }: Route.LoaderArgs) {
+  let session = await getSession(request.headers.get("Cookie"));
+  let toastMessage = session.get("toastMessage");
+
+  return data(toastMessage, {
+    headers: {
+      "Set-Cookie": await commitSession(session),
+    },
+  });
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  let toastMessage = useLoaderData();
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return;
+    }
+
+    let { message, type } = toastMessage;
+
+    switch (type) {
+      case "success": {
+        toast.success(message);
+      }
+    }
+  }, [toastMessage]);
+
   return (
     <html lang="en">
       <head>
@@ -35,6 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster />
         <ScrollRestoration />
         <Scripts />
       </body>
