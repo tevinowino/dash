@@ -22,10 +22,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
           getAll() {
             return parseCookieHeader(request.headers.get("Cookie") ?? "");
           },
-          setAll(key, value, options) {
-            headers.append(
-              "Set-Cookie",
-              serializeCookieHeader(key, value, options)
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              headers.append(
+                "Set-Cookie",
+                serializeCookieHeader(name, value, options)
+              )
             );
           },
         },
