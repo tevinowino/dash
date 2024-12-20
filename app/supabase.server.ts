@@ -4,7 +4,7 @@ import {
   serializeCookieHeader,
 } from "@supabase/ssr";
 
-export function createClient(request) {
+export function createClient(request: Request) {
   let headers = new Headers();
 
   const supabase = createServerClient(
