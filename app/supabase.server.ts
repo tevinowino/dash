@@ -29,3 +29,12 @@ export function createClient(request: Request) {
 
   return { supabase, headers };
 }
+
+export async function getUser(request: Request) {
+  let { supabase } = createClient(request);
+  let {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return { user };
+}
