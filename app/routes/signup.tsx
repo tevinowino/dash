@@ -1,8 +1,13 @@
-import { data, Form, redirect, useNavigation } from "react-router";
+import { Form, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/signup";
 import { validateEmail, validatePassword } from "~/validation";
 import { createClient } from "~/supabase.server";
 import { commitSession, getSession, setSuccessMessage } from "~/session.server";
+
+interface FieldError {
+  email?: string;
+  password?: string;
+}
 
 export async function action({ request }: Route.ActionArgs) {
   let session = await getSession(request.headers.get("Cookie"));
@@ -11,9 +16,7 @@ export async function action({ request }: Route.ActionArgs) {
   let email = String(formData.get("email"));
   let password = String(formData.get("password"));
 
-  // Validation
-
-  let fieldErrors = {
+  let fieldErrors: FieldError = {
     email: validateEmail(email),
     password: validatePassword(password),
   };
@@ -21,13 +24,7 @@ export async function action({ request }: Route.ActionArgs) {
   // Return errors if any
 
   if (Object.values(fieldErrors).some(Boolean)) {
-    return data(
-      { fieldErrors },
-      {
-        status: 400,
-        statusText: "Bad Request",
-      }
-    );
+    return { fieldErrors };
   }
 
   // Sign up user
@@ -41,27 +38,18 @@ export async function action({ request }: Route.ActionArgs) {
     throw error;
   }
 
-  console.log({ userData });
-
-  // return data(
-  //   { ok: true },
-  //   {
-  //     headers: headers,
-  //   }
-  // );
-
   if (userData) {
     setSuccessMessage(session, "Check your email to verify your account!");
+    let allHeaders = {
+      ...Object.fromEntries(headers.entries()),
+      "Set-Cookie": await commitSession(session),
+    };
+
+    throw redirect("/", {
+      headers: allHeaders,
+    });
   }
-
-  let allHeaders = {
-    ...Object.fromEntries(headers.entries()),
-    "Set-Cookie": await commitSession(session),
-  };
-
-  return redirect("/", {
-    headers: allHeaders,
-  });
+  return null;
 }
 
 export default function Signup({ actionData }: Route.ComponentProps) {
@@ -74,7 +62,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
         <h1 className="text-4xl font-semibold">Signup</h1>
         <Form method="post" className="mt-8 space-y-4">
           <div>
-            <label htmlFor="">
+            <label htmlFor="email">
               Email{" "}
               {actionData?.fieldErrors?.email ? (
                 <span className="text-red-500">
