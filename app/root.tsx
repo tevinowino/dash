@@ -2,6 +2,7 @@ import {
   data,
   Form,
   isRouteErrorResponse,
+  Link,
   Links,
   Meta,
   Outlet,
@@ -114,11 +115,20 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <h1>Logo</h1>
         {userEmail ? (
           <div className="flex gap-2 items-center">
+            <Link
+              to="/dashboard"
+              className="border border-orange-500 hover:bg-slate-700 rounded px-4 py-2"
+            >
+              Dashboard
+            </Link>
             <p className="hidden lg:flex text-gray-300 text-sm">
               Logged in as {userEmail}
             </p>
             <Form method="post" action="/logout">
-              <button type="submit" className="bg-orange-500 px-4 py-2 rounded">
+              <button
+                type="submit"
+                className="bg-red-500 px-4 py-2 rounded active:scale-[.97] transition ease-in-out duration-300"
+              >
                 Log out
               </button>
             </Form>

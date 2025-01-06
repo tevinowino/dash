@@ -1,65 +1,63 @@
-import { Form, redirect, useNavigation } from "react-router";
-import type { Route } from "./+types/signup";
-import { validateEmail, validatePassword } from "~/validation";
+import { data, Form, redirect, useNavigation } from "react-router";
+import type { Route } from "../routes/+types/login";
 import { createClient } from "~/supabase.server";
+import { validateEmail, validatePassword } from "~/validation";
 import { commitSession, getSession, setSuccessMessage } from "~/session.server";
 
-interface FieldError {
-  email?: string;
-  password?: string;
-}
-
 export async function action({ request }: Route.ActionArgs) {
-  let session = await getSession(request.headers.get("Cookie"));
+  let { supabase, headers } = createClient(request);
 
   let formData = await request.formData();
-  let email = String(formData.get("email"));
-  let password = String(formData.get("password"));
+  let session = await getSession(request.headers.get("Cookie"));
 
-  let fieldErrors: FieldError = {
+  let email = formData.get("email");
+  let password = formData.get("password");
+
+  // Validate and return errors if any
+
+  let fieldErrors = {
     email: validateEmail(email),
     password: validatePassword(password),
   };
 
-  // Return errors if any
-
   if (Object.values(fieldErrors).some(Boolean)) {
-    return { fieldErrors };
+    return data({ fieldErrors }, { status: 400 });
   }
 
-  // Sign up user
+  // Sign in
 
-  let { supabase, headers } = createClient(request);
-  let { data: userData, error } = await supabase.auth.signUp({
+  let { data: userData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
+
   if (error) {
     throw error;
   }
 
-  if (userData) {
-    setSuccessMessage(session, "Check your email to verify your account!");
-    let allHeaders = {
-      ...Object.fromEntries(headers.entries()),
-      "Set-Cookie": await commitSession(session),
-    };
+  let userEmail = userData.user?.email;
 
-    throw redirect("/", {
-      headers: allHeaders,
-    });
+  if (userEmail) {
+    setSuccessMessage(session, "Logged in successfully!");
   }
-  return null;
+
+  let allHeaders = {
+    ...Object.fromEntries(headers.entries()),
+    "Set-Cookie": await commitSession(session),
+  };
+
+  return redirect("/", {
+    headers: allHeaders,
+  });
 }
 
-export default function Signup({ actionData }: Route.ComponentProps) {
+export default function Login({ actionData }: Route.ComponentProps) {
   let navigation = useNavigation();
   let isSubmitting = navigation.state === "submitting";
-
   return (
     <main className="grid lg:grid-cols-2 gap-8 lg:gap-12 lg:h-screen px-6 xl:max-w-6xl mx-auto">
       <div className="lg:self-center">
-        <h1 className="text-4xl font-semibold">Signup</h1>
+        <h1 className="text-4xl font-semibold">Login</h1>
         <Form method="post" className="mt-8 space-y-4">
           <div>
             <label htmlFor="email">
@@ -105,7 +103,7 @@ export default function Signup({ actionData }: Route.ComponentProps) {
             type="submit"
             className="bg-green-500 hover:bg-green-700 transition ease-in-out duration-300 px-4 py-2 rounded-md active:scale-[.97]"
           >
-            {isSubmitting ? "Signing up..." : "Sign Up"}
+            {isSubmitting ? "Logging in..." : "Log In"}
           </button>
         </Form>
       </div>
