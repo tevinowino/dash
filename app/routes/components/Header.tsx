@@ -32,7 +32,7 @@ export default function Header({ cartItems }: HeaderProps) {
     { name: 'Deals', icon: <Percent className="w-4 h-4" /> },
     { name: 'Gift Cards', icon: <Gift className="w-4 h-4" /> },
   ];
-
+  // console.log({cartItems})
   return (
     <div className="bg-white">
       {/* Top Banner */}
@@ -61,12 +61,6 @@ export default function Header({ cartItems }: HeaderProps) {
           <div className="flex items-center justify-between h-20">
             {/* Logo and Navigation */}
             <div className="flex items-center gap-8">
-              <Link 
-                to="/" 
-                className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-              >
-                ShopSmart
-              </Link>
 
               {/* Desktop Navigation */}
               <nav className="hidden lg:flex items-center gap-6">

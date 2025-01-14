@@ -8,6 +8,7 @@ import {
   useLoaderData,
   Link,
   Form,
+  data,
 } from "react-router";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
@@ -34,9 +35,9 @@ export async function loader({ request }: { request: Request }) {
   const session = await getSession(request.headers.get("Cookie"));
   const toastMessage = session.get("toastMessage");
 
-  if (toastMessage) {
-    session.unset("toastMessage");
-  }
+  // if (toastMessage) {
+  //   session.unset("toastMessage");
+  // }
 
   let userEmail = null;
   try {
@@ -48,14 +49,15 @@ export async function loader({ request }: { request: Request }) {
 
   let adminEmail = String(process.env.ADMIN_EMAIL);
 
-  return {
+  return data({
     toastMessage,
     userEmail,
     adminEmail,
+  }, {
     headers: {
       "Set-Cookie": await commitSession(session),
     },
-  };
+  });
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -68,7 +70,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       if (type === "success") toast.success(message);
     }
   }, [toastMessage]);
-
+  console.log({ toastMessage })
   return (
     <html lang="en">
       <head>
@@ -87,7 +89,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Home className="w-5 h-5 text-white" />
                   </div>
                   <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-                    Dash
+                    ShopSmart
                   </span>
                 </Link>
               </div>

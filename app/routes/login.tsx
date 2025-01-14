@@ -3,7 +3,7 @@ import { validateEmail, validatePassword } from "~/validation";
 import { createClient } from "~/supabase.server";
 import { commitSession, getSession, setSuccessMessage } from "~/session.server";
 import { useState } from "react";
-import { Form, redirect, useActionData, useNavigation } from "react-router";
+import { Form, Link, redirect, useActionData, useNavigation } from "react-router";
 import { Eye, EyeOff } from "lucide-react";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -130,6 +130,12 @@ export default function Login() {
                 {isSubmitting ? "Logging in..." : "Log In"}
               </button>
             </Form>
+            <p>
+              <Link to={"/forgot-password"} className="text-sm text-blue-500 hover:text-blue-600">
+                Forgot your password?
+              </Link>
+            </p>
+            
 
             {actionData?.formError && (
               <div className="p-4 bg-red-50 border border-red-100 rounded-lg" role="alert">

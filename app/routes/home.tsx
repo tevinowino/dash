@@ -1,30 +1,13 @@
 import { Link, useLoaderData, useSearchParams } from 'react-router';
 import {
-  ShoppingCart,
   Truck,
   Shield,
   Clock,
   Star,
-  Heart,
-  Search,
-  Menu,
   ArrowRight,
-  X,
   TrendingUp,
   ChevronRight,
   Package,
-  Check,
-  Plus,
-  User,
-  Bell,
-  ChevronDown,
-  Percent,
-  Headphones,
-  ShoppingBag,
-  Gift,
-  Trash2,
-  Minus,
-  CreditCard
 } from 'lucide-react';
 import type { Route } from '../+types/root';
 import { clientPromise } from '~/db.server';
@@ -32,9 +15,10 @@ import Header from './components/Header';
 import ProductCard from './components/ProductCard';
 import { getSession } from '~/session.server';
 import { getUser } from '~/supabase.server';
+import { ObjectId } from 'mongodb';
 
 export const loader = async ({ request }: { request: Request }) => {
-  const client = clientPromise;
+  const client = await clientPromise;
   const db = client.db("Smartshop");
 
   // Extract search parameters for category filtering
@@ -47,37 +31,49 @@ export const loader = async ({ request }: { request: Request }) => {
   // Extract unique categories from products
   const categories = Array.from(new Set(products.map(product => product.category)));
 
-  // Filter products by category if provided
-  const filteredProducts = category
-    ? products.filter(product => product.category === category)
-    : products;
-
   // Get user data
   const session = await getSession(request.headers.get("Cookie"));
   const user = await getUser(request);
-  console.log("User:", user);
 
-  let cartItems = [];
+  let cartItemsResults = [];
 
   if (user) {
     const userId = user.id;
-    console.log("User ID:", userId);
 
     // Get cart items for the user
     const userFromDb = await db.collection("users").findOne({ supabaseId: userId });
-    console.log("User from Db:", userFromDb);
 
     if (userFromDb) {
-      cartItems = userFromDb.cart || [];
-    } else {
-      console.error("User from db not found");
+      const cart = userFromDb.cart || [];
+
+      // Fetch product details for items in the cart using productId
+      const productIds = cart.map(item => new ObjectId(item.productId));
+      const cartProducts = await db.collection("products")
+        .find({ _id: { $in: productIds } })
+        .toArray();
+
+        // console.log({cartProducts})
+
+      // Map product details and quantities together
+      cartItemsResults = cart.map(cartItem => {
+        const product = cartProducts.find(p => p._id.toString() === cartItem.productId);
+        return product
+          ? { productId: product._id.toString(), quantity: cartItem.quantity, product }
+          : null;
+      }).filter(Boolean);
     }
   }
 
+  console.log({cartItemsResults})
+
+  // Return filtered products, categories, and cart items
   return { 
-    products: JSON.parse(JSON.stringify(filteredProducts)), 
+    products: JSON.parse(JSON.stringify(category 
+      ? products.filter(product => product.category === category) 
+      : products
+    )), 
     categories, 
-    cartItems 
+    cartItems: cartItemsResults 
   };
 };
 
@@ -92,7 +88,7 @@ export function meta({ }: Route.MetaArgs) {
 
 export default function Home() {
   const { products = [], cartItems = [], categories } = useLoaderData();
-  console.log(products.length)
+  // console.log(products)
   const [searchParams, setSearchParams] = useSearchParams();
 
   const handleCategoryChange = (category) => {
@@ -263,7 +259,7 @@ export default function Home() {
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {products.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
           </div>

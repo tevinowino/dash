@@ -1,56 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CreditCard, ShoppingCart, X, Trash2 } from "lucide-react";
+import { Form } from "react-router";
 
-export default function CartComponent({ cartItems: initialCartItems }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
-  const [cartQuantities, setCartQuantities] = useState({});
-
-  // Initialize cart items with quantities
-  useEffect(() => {
-    const initialQuantities = {};
-    initialCartItems.forEach(item => {
-      initialQuantities[item._id] = 1;
-    });
-    setCartQuantities(initialQuantities);
-    setCartItems(initialCartItems);
-  }, [initialCartItems]);
-
-  // Calculate totals
-  const calculateItemTotal = (item) => {
-    return (parseFloat(item.price) * (cartQuantities[item._id] || 0)).toFixed(2);
+interface CartItem {
+  _id: string;
+  productId: string;
+  product: {
+    name: string;
+    price: string;
+    imageUrl: string;
   };
+  quantity: number;
+}
 
-  const subtotal = cartItems.reduce((sum, item) => {
-    return sum + parseFloat(calculateItemTotal(item));
-  }, 0);
+interface CartComponentProps {
+  cartItems: CartItem[];
+}
 
-  const shippingFee = subtotal > 100 ? 0 : 10;
-  const total = subtotal + shippingFee;
+export default function CartComponent({ cartItems: initialCartItems }: CartComponentProps) {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  // Quantity handlers
-  const updateQuantity = (itemId, delta) => {
-    setCartQuantities(prev => {
-      const newQuantity = Math.max(0, (prev[itemId] || 0) + delta);
-      if (newQuantity === 0) {
-        removeItem(itemId);
-        return prev;
-      }
-      return { ...prev, [itemId]: newQuantity };
-    });
-  };
-
-  const removeItem = (itemId) => {
-    setCartItems(prev => prev.filter(item => item._id !== itemId));
-    setCartQuantities(prev => {
-      const newQuantities = { ...prev };
-      delete newQuantities[itemId];
-      return newQuantities;
-    });
-  };
-
-  // Calculate total items in cart
-  const totalItems = Object.values(cartQuantities).reduce((sum, quantity) => sum + quantity, 0);
+  const totalItems = initialCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalCost = initialCartItems.reduce(
+    (sum, item) => sum + parseFloat(item.product.price) * item.quantity,
+    0
+  );
+  const shippingCost = totalCost > 200 ? 0 : 10; // Free shipping for orders above $100
+  const finalTotal = totalCost + shippingCost;
 
   return (
     <div className="relative">
@@ -71,8 +47,7 @@ export default function CartComponent({ cartItems: initialCartItems }) {
       {/* Cart Overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setIsOpen(false)}>
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col" onClick={e => e.stopPropagation()}>
-            {/* Header */}
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">Your Cart ({totalItems} items)</h2>
               <button
@@ -86,52 +61,61 @@ export default function CartComponent({ cartItems: initialCartItems }) {
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {cartItems.length > 0 ? (
-                cartItems.map(item => (
+              {initialCartItems.length > 0 ? (
+                initialCartItems.map((item) => (
                   <div
-                    key={item._id}
+                    key={item.productId}
                     className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-100"
                   >
                     <img
-                      src={item.imageUrl}
-                      alt={item.name}
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.name}</h3>
+                      <h3 className="font-medium text-gray-900">{item.product.name}</h3>
                       <div className="text-sm text-gray-500">
-                        ${parseFloat(item.price).toFixed(2)} each
+                        ${parseFloat(item.product.price).toFixed(2)} each
                       </div>
                       <div className="mt-2 flex items-center gap-3">
-                        <button
-                          onClick={() => updateQuantity(item._id, -1)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 transition-colors"
-                          aria-label="Decrease quantity"
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center text-gray-900">{cartQuantities[item._id] || 0}</span>
-                        <button
-                          onClick={() => updateQuantity(item._id, 1)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 transition-colors"
-                          aria-label="Increase quantity"
-                        >
-                          +
-                        </button>
+                        <Form method="post" action="/cart">
+                          <input type="hidden" name="productId" value={item.productId} />
+                          <button
+                            name="_action"
+                            value="decreaseQuantity"
+                            type="submit"
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 transition-colors"
+                            aria-label="Decrease quantity"
+                          >
+                            -
+                          </button>
+                        </Form>
+                        <span className="w-8 text-center text-gray-900">{item.quantity}</span>
+                        <Form method="post" action="/cart">
+                          <input type="hidden" name="productId" value={item.productId} />
+                          <button
+                            name="_action"
+                            value="increaseQuantity"
+                            type="submit"
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 transition-colors"
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </Form>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="font-medium text-gray-900">
-                        ${calculateItemTotal(item)}
-                      </div>
+                    <Form action="/cart" method="post">
+                      <input type="hidden" name="productId" value={item.productId} />
+                      <input type="hidden" name="_action" value="deleteCartItem" />
                       <button
-                        onClick={() => removeItem(item._id)}
+                        type="submit"
                         className="text-red-500 hover:text-red-600 p-1"
                         aria-label="Remove item"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
+                    </Form>
                   </div>
                 ))
               ) : (
@@ -143,28 +127,23 @@ export default function CartComponent({ cartItems: initialCartItems }) {
               )}
             </div>
 
-            {/* Summary */}
-            <div className="border-t bg-gray-50 p-4">
-              <div className="flex justify-between text-gray-600 mb-2">
-                <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+            {/* Total Cost and Shipping */}
+            <div className="border-t bg-gray-50 p-4 space-y-2">
+              <div className="flex justify-between text-gray-700">
+                <span>Subtotal:</span>
+                <span>${totalCost.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-600 mb-2">
-                <span>Shipping</span>
-                <span>${shippingFee.toFixed(2)}</span>
-                {shippingFee > 0 && (
-                  <span className="text-sm text-gray-500 ml-2">
-                    (Free shipping over $100)
-                  </span>
-                )}
+              <div className="flex justify-between text-gray-700">
+                <span>Shipping:</span>
+                <span>{shippingCost === 0 ? "Free" : `$${shippingCost.toFixed(2)}`}</span>
               </div>
-              <div className="flex justify-between text-lg font-semibold text-gray-900 mb-4">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+              <div className="flex justify-between font-semibold text-gray-900">
+                <span>Total:</span>
+                <span>${finalTotal.toFixed(2)}</span>
               </div>
               <button
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={cartItems.length === 0}
+                disabled={initialCartItems.length === 0}
               >
                 <CreditCard className="w-5 h-5" />
                 Checkout
