@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "react-router";
+import { createCookieSessionStorage, type Session } from "react-router";
 
 export const { getSession, commitSession, destroySession } =
   createCookieSessionStorage({
@@ -14,6 +14,6 @@ export const { getSession, commitSession, destroySession } =
     },
   });
 
-export function setSuccessMessage(session, message: string) {
+export function setSuccessMessage(session: Session, message: string) {
   session.flash("toastMessage", { message, type: "success" });
 }

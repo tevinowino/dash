@@ -5,6 +5,7 @@ import {
 } from "@supabase/ssr";
 
 export function createClient(request: Request) {
+export function createClient(request: Request) {
   let headers = new Headers();
 
    const supabase = createServerClient(

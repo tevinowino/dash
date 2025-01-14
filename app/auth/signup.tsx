@@ -1,5 +1,5 @@
 import { Form, redirect, useNavigation } from "react-router";
-import type { Route } from "./+types/signup";
+import type { Route } from "../routes/+types/signup";
 import { validateEmail, validatePassword } from "~/validation";
 import { createClient } from "~/supabase.server";
 import { commitSession, getSession, setSuccessMessage } from "~/session.server";
