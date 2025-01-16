@@ -70,14 +70,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
       if (type === "success") toast.success(message);
     }
   }, [toastMessage]);
-  console.log({ toastMessage })
   return (
     <html lang="en">
+      
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script src="https://unpkg.com/intasend-inlinejs-sdk@4.0.7/build/intasend-inline.js"></script>
+
       </head>
       <body className="bg-gray-900 text-gray-100">
         <header className="fixed w-full z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800">

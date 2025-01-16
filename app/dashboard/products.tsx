@@ -1,4 +1,4 @@
-import { Edit, Trash2, PlusCircle, X } from "lucide-react";
+import { Edit, Trash2, PlusCircle, X, Package, Tags, ListPlus, DollarSign, Box, FileText, Activity, Image } from "lucide-react";
 import { useState } from "react";
 import { Form, redirect, useLoaderData } from "react-router";
 import { clientPromise, ObjectId } from "~/db.server";
@@ -12,30 +12,36 @@ export async function action({ request }: Route.ActionArgs) {
     const stock = formData.get("stock")?.toString().trim();
     const status = formData.get("status")?.toString().trim();
     const imageUrl = formData.get("imageUrl")?.toString().trim();
+    const description = formData.get("description")?.toString().trim();
+    const featuresInput = formData.get("features")?.toString().trim();
+
+    // Convert features input to an array
+    const features = featuresInput ? featuresInput.split("\n").map(f => f.trim()).filter(f => f !== "") : [];
+
     const action = formData.get("_action");
     const client = await clientPromise;
     const db = client.db("Smartshop");
     const productsCollection = db.collection("products");
 
     if (action === "addProduct") {
-        if (name && category && price && stock && status) {
-            await productsCollection.insertOne({ name, category, price, stock, status, imageUrl });
+        if (name && category && price && stock && status && description && features.length > 0) {
+            await productsCollection.insertOne({ name, category, price, stock, status, imageUrl, description, features });
             return redirect("/dashboard/products");
         }
         return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
+    } else if (action === "updateProduct") {
+        const productId = formData.get("productId")?.toString();
+        if (productId && name && category && price && stock && status && description && features.length > 0) {
+            await productsCollection.updateOne(
+                { _id: new ObjectId(productId) },
+                { $set: { name, category, price, stock, status, imageUrl, description, features } }
+            );
+            return redirect("/dashboard/products");
+        }
     } else if (action === "deleteProduct") {
         const productId = formData.get("productId")?.toString();
         if (productId) {
             await productsCollection.deleteOne({ _id: new ObjectId(productId) });
-            return redirect("/dashboard/products");
-        }
-    } else if (action === "updateProduct") {
-        const productId = formData.get("productId")?.toString();
-        if (productId && name && category && price && stock && status) {
-            await productsCollection.updateOne(
-                { _id: new ObjectId(productId) },
-                { $set: { name, category, price, stock, status, imageUrl } }
-            );
             return redirect("/dashboard/products");
         }
     }
@@ -58,28 +64,37 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
         stock: product?.stock || "",
         status: product?.status || "Active",
         imageUrl: product?.imageUrl || "",
+        description: product?.description || "",
+        features: product?.features || ""
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
 
     return (
-        <div className="fixed top-14 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-900 p-6 rounded-lg w-fit max-w-md">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-semibold text-white mb-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-gray-900 p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
+                        <Package className="h-6 w-6" />
                         {product ? "Update Product" : "Add New Product"}
                     </h2>
-                    <button onClick={closeModal}>
-                        <X />
+                    <button 
+                        onClick={closeModal}
+                        className="text-gray-400 hover:text-white transition-colors"
+                    >
+                        <X className="h-6 w-6" />
                     </button>
                 </div>
+
                 <Form method="post" className="space-y-6" onSubmit={closeModal}>
                     {product && <input type="hidden" name="productId" value={product._id} />}
+                    
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="name">
+                        <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="name">
+                            <Tags className="h-4 w-4" />
                             Product Name
                         </label>
                         <input
@@ -90,12 +105,14 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                             onChange={handleChange}
                             required
                             placeholder="Enter product name"
-                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="category">
+                            <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="category">
+                                <ListPlus className="h-4 w-4" />
                                 Category
                             </label>
                             <input
@@ -106,11 +123,13 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                                 onChange={handleChange}
                                 required
                                 placeholder="Enter product category"
-                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             />
                         </div>
+                        
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="price">
+                            <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="price">
+                                <DollarSign className="h-4 w-4" />
                                 Price
                             </label>
                             <input
@@ -121,13 +140,15 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                                 onChange={handleChange}
                                 required
                                 placeholder="Enter product price"
-                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="stock">
+                            <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="stock">
+                                <Box className="h-4 w-4" />
                                 Stock Quantity
                             </label>
                             <input
@@ -138,12 +159,13 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                                 onChange={handleChange}
                                 required
                                 placeholder="Enter stock quantity"
-                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="imageUrl">
-                                Product Image URL
+                            <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="imageUrl">
+                                <Image className="h-4 w-4" />
+                                Product Image Url
                             </label>
                             <input
                                 type="url"
@@ -152,12 +174,46 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                                 value={formData.imageUrl}
                                 onChange={handleChange}
                                 placeholder="Enter product image URL"
-                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             />
                         </div>
                     </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2" htmlFor="status">
+                        <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="description">
+                            <FileText className="h-4 w-4" />
+                            Product Description
+                        </label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            placeholder="Enter product description"
+                            rows={4}
+                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="features">
+                            <ListPlus className="h-4 w-4" />
+                            Product Features
+                        </label>
+                        <textarea
+                            id="features"
+                            name="features"
+                            value={formData.features}
+                            onChange={handleChange}
+                            placeholder="Enter product features (one per line)"
+                            rows={4}
+                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2" htmlFor="status">
+                            <Activity className="h-4 w-4" />
                             Status
                         </label>
                         <select
@@ -165,18 +221,20 @@ function AddOrUpdateProduct({ product, closeModal }: { product?: any; closeModal
                             name="status"
                             value={formData.status}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white"
+                            className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         >
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
+
                     <button
                         type="submit"
                         name="_action"
                         value={product ? "updateProduct" : "addProduct"}
-                        className="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg"
+                        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
+                        <Package className="h-5 w-5" />
                         {product ? "Update Product" : "Add Product"}
                     </button>
                 </Form>

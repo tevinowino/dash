@@ -10,8 +10,9 @@ export const action = async ({ request }: { request: Request }) => {
   try {
     // Parse form data
     const formData = await request.formData();
-    const productId = formData.get("productId") as string;
-    const actionType = formData.get("_action") as string;
+    const productId = String(formData.get("productId")) ;
+    const actionType = String(formData.get("_action"));
+    const count = Number(formData.get("count"));
 
     console.log("Action Type:", actionType);
     console.log("Product ID:", productId);
@@ -62,7 +63,8 @@ export const action = async ({ request }: { request: Request }) => {
 
       case "increaseQuantity":
         if (productIndex !== -1) {
-          updatedCart[productIndex].quantity += 1;
+          updatedCart[productIndex].quantity = count;
+          console.log({updatedCart: updatedCart[productIndex].quantity});
           setSuccessMessage(session, "Product quantity increased.");
         } else {
           throw new Error("Product not found in cart to increase quantity.");
@@ -72,7 +74,8 @@ export const action = async ({ request }: { request: Request }) => {
       case "decreaseQuantity":
         if (productIndex !== -1) {
           if (updatedCart[productIndex].quantity > 1) {
-            updatedCart[productIndex].quantity -= 1;
+            updatedCart[productIndex].quantity = count;
+            console.log({updatedCart: updatedCart[productIndex].quantity});
             setSuccessMessage(session, "Product quantity decreased.");
           } else {
             updatedCart.splice(productIndex, 1);
