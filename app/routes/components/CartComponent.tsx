@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { CreditCard, ShoppingCart, X, Trash2 } from "lucide-react";
 import { useFetcher } from "react-router";
-import 'intasend-inlinejs-sdk'
 
 interface CartItem {
   _id: string;
@@ -31,15 +30,6 @@ export default function CartComponent({ cartItems }: CartComponentProps) {
   const shippingCost = totalCost > 200 ? 0 : 10;
   const finalTotal = totalCost + shippingCost;
 
-  new window.IntaSend({
-    publicAPIKey: "<Your Public Key>",
-    live: false //or true for live environment
-  })
-  .on("COMPLETE", (response) => { console.log("COMPLETE:", response) })
-  .on("FAILED", (response) => { console.log("FAILED", response) })
-  .on("IN-PROGRESS", () => { console.log("INPROGRESS ...") })
-  
-}
 
   return (
     <div className="relative">
